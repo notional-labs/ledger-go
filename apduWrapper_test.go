@@ -18,11 +18,11 @@ package ledger_go
 
 import (
 	"bytes"
-	"fmt"
-	"github.com/stretchr/testify/assert"
 	"math"
 	"testing"
 	"unsafe"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_SerializePacket_EmptyCommand(t *testing.T) {
@@ -34,7 +34,7 @@ func Test_SerializePacket_EmptyCommand(t *testing.T) {
 
 func Test_SerializePacket_PacketSize(t *testing.T) {
 
-	var packetSize int = 64
+	var packetSize = 64
 	type header struct {
 		channel     uint16
 		tag         uint8
@@ -57,7 +57,7 @@ func Test_SerializePacket_PacketSize(t *testing.T) {
 
 func Test_SerializePacket_Header(t *testing.T) {
 
-	var packetSize int = 64
+	var packetSize = 64
 	type header struct {
 		channel     uint16
 		tag         uint8
@@ -83,7 +83,7 @@ func Test_SerializePacket_Header(t *testing.T) {
 
 func Test_SerializePacket_Offset(t *testing.T) {
 
-	var packetSize int = 64
+	var packetSize = 64
 	type header struct {
 		channel     uint16
 		tag         uint8
@@ -101,21 +101,16 @@ func Test_SerializePacket_Offset(t *testing.T) {
 		packetSize,
 		h.sequenceIdx)
 
-	assert.Equal(t, packetSize-int(unsafe.Sizeof(h))+1, offset, "Wrong offset returned. Offset must point to the next comamnd byte that needs to be packet-ized.")
+	assert.Equal(t, packetSize-int(unsafe.Sizeof(h))+1, offset, "Wrong offset returned. Offset must point to the next command byte that needs to be packetized.")
 }
 
 func Test_WrapCommandAPDU_NumberOfPackets(t *testing.T) {
 
-	var packetSize int = 64
+	var packetSize = 64
 	type firstHeader struct {
 		channel     uint16
 		sequenceIdx uint16
 		commandLen  uint16
-		tag         uint8
-	}
-	type secondHeader struct {
-		channel     uint16
-		sequenceIdx uint16
 		tag         uint8
 	}
 
@@ -133,16 +128,11 @@ func Test_WrapCommandAPDU_NumberOfPackets(t *testing.T) {
 
 func Test_WrapCommandAPDU_CheckHeaders(t *testing.T) {
 
-	var packetSize int = 64
+	var packetSize = 64
 	type firstHeader struct {
 		channel     uint16
 		sequenceIdx uint16
 		commandLen  uint16
-		tag         uint8
-	}
-	type secondHeader struct {
-		channel     uint16
-		sequenceIdx uint16
 		tag         uint8
 	}
 
@@ -168,16 +158,11 @@ func Test_WrapCommandAPDU_CheckHeaders(t *testing.T) {
 
 func Test_WrapCommandAPDU_CheckData(t *testing.T) {
 
-	var packetSize int = 64
+	var packetSize = 64
 	type firstHeader struct {
 		channel     uint16
 		sequenceIdx uint16
 		commandLen  uint16
-		tag         uint8
-	}
-	type secondHeader struct {
-		channel     uint16
-		sequenceIdx uint16
 		tag         uint8
 	}
 
@@ -195,35 +180,35 @@ func Test_WrapCommandAPDU_CheckData(t *testing.T) {
 		packetSize)
 
 	// Check data in the first packet
-	assert.True(t, bytes.Compare(command[0:64-7], result[7:64]) == 0)
+	assert.True(t, bytes.Equal(command[0:64-7], result[7:64]))
 
 	result = result[64:]
 	command = command[64-7:]
 	// Check data in the second packet
-	assert.True(t, bytes.Compare(command[0:64-5], result[5:64]) == 0)
+	assert.True(t, bytes.Equal(command[0:64-5], result[5:64]))
 
 	result = result[64:]
 	command = command[64-5:]
 	// Check data in the third packet
-	assert.True(t, bytes.Compare(command[0:64-5], result[5:64]) == 0)
+	assert.True(t, bytes.Equal(command[0:64-5], result[5:64]))
 
 	result = result[64:]
 	command = command[64-5:]
 
 	// Check data in the last packet
-	assert.True(t, bytes.Compare(command[0:], result[5:5+len(command)]) == 0)
+	assert.True(t, bytes.Equal(command[0:], result[5:5+len(command)]))
 
 	// The remaining bytes in the result should be zeros
 	result = result[5+len(command):]
-	assert.True(t, bytes.Compare(result, make([]byte, len(result))) == 0)
+	assert.True(t, bytes.Equal(result, make([]byte, len(result))))
 }
 
 func Test_DeserializePacket_FirstPacket(t *testing.T) {
 
 	var sampleCommand = []byte{'H', 'e', 'l', 'l', 'o', 0}
 
-	var packetSize int = 64
-	var firstPacketHeaderSize int = 7
+	var packetSize = 64
+	var firstPacketHeaderSize = 7
 	packet, _, _ := SerializePacket(0x0101, sampleCommand, packetSize, 0)
 
 	output, totalSize, err := DeserializePacket(0x0101, packet, 0)
@@ -237,8 +222,8 @@ func Test_DeserializePacket_FirstPacket(t *testing.T) {
 func Test_DeserializePacket_SecondMessage(t *testing.T) {
 	var sampleCommand = []byte{'H', 'e', 'l', 'l', 'o', 0}
 
-	var packetSize int = 64
-	var firstPacketHeaderSize int = 5 // second packet does not have responseLegth (uint16) in the header
+	var packetSize = 64
+	var firstPacketHeaderSize = 5 // second packet does not have responseLength (uint16) in the header
 	packet, _, _ := SerializePacket(0x0101, sampleCommand, packetSize, 1)
 
 	output, totalSize, err := DeserializePacket(0x0101, packet, 1)
@@ -246,14 +231,14 @@ func Test_DeserializePacket_SecondMessage(t *testing.T) {
 	assert.Nil(t, err, "Simple deserialize should not have errors")
 	assert.Equal(t, 0, int(totalSize), "TotalSize should not be returned from deserialization of non-first packet")
 	assert.Equal(t, packetSize-firstPacketHeaderSize, len(output), "Size of the deserialized packet is wrong")
-	assert.True(t, bytes.Compare(output[:len(sampleCommand)], sampleCommand) == 0, "Deserialized message does not match the original")
+	assert.True(t, bytes.Equal(output[:len(sampleCommand)], sampleCommand), "Deserialized message does not match the original")
 }
 
 func Test_UnwrapApdu_SmokeTest(t *testing.T) {
 	const channel uint16 = 0x8002
 
 	inputSize := 200
-	var packetSize int = 64
+	var packetSize = 64
 
 	// Initialize some dummy input
 	var input = make([]byte, inputSize)
@@ -273,12 +258,12 @@ func Test_UnwrapApdu_SmokeTest(t *testing.T) {
 
 	output, _ := UnwrapResponseAPDU(channel, pipe, packetSize)
 
-	fmt.Printf("INPUT     : %x\n", input)
-	fmt.Printf("SERIALIZED: %x\n", serialized)
-	fmt.Printf("OUTPUT    : %x\n", output)
+	//fmt.Printf("INPUT     : %x\n", input)
+	//fmt.Printf("SERIALIZED: %x\n", serialized)
+	//fmt.Printf("OUTPUT    : %x\n", output)
 
 	assert.Equal(t, len(input), len(output), "Input and output messages have different size")
 	assert.True(t,
-		bytes.Compare(input, output) == 0,
+		bytes.Equal(input, output),
 		"Input message does not match message which was serialized and then deserialized")
 }
